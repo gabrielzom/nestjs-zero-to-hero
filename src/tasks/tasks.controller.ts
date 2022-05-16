@@ -1,6 +1,12 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { Task } from './tasks.model';
+import { CreateTaskDto } from './dto/create-task.dto';
+
+interface Response {
+  status: number;
+  message: string;
+}
 
 @Controller('tasks')
 export class TasksController {
@@ -12,9 +18,12 @@ export class TasksController {
   }
 
   @Post()
-  createTask(@Body() task: Task): Task {
-    console.log('Created task ---> ', task);
-    const { title, description } = task;
-    return this.tasksService.createTask(title, description);
+  createTask(@Body() createTaskDto: CreateTaskDto): Response {
+    this.tasksService.createTask(createTaskDto);
+    console.log('LOG ---> Task created succefully');
+    return {
+      status: 201,
+      message: 'Task created succefully',
+    };
   }
 }
