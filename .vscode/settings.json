@@ -1,3 +1,20 @@
 {
-    "FSharp.suggestGitignore": false
+    "FSharp.suggestGitignore": false,
+    "sqltools.connections": [
+        {
+            "mssqlOptions": {
+                "appName": "SQLTools",
+                "useUTC": true,
+                "encrypt": true
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 1433,
+            "driver": "MSSQL",
+            "name": "nest_with_prisma",
+            "database": "NEST_WITH_PRISMA",
+            "username": "sa",
+            "password": "Biels@@1"
+        }
+    ]
 }
