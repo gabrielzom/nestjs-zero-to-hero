@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { TaskStatus } from './tasks.model';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { Prisma } from '@prisma/client';
+import { Task } from '@prisma/client';
 import { PrismaService } from 'src/database/PrismaService';
 import { CreateTaskResponseDto } from './dto/create-task-response-dto';
 import { UpdateTaskStatusResponseDto } from './dto/update-task-status-response.dto';
@@ -16,10 +16,7 @@ import { DeleteTaskResponseDto } from './dto/delete-task-response.dto';
 export class TasksService {
   constructor(private prisma: PrismaService) {}
 
-  async getTasks(
-    status: string,
-    description: string,
-  ): Promise<Prisma.TaskCreateInput[]> {
+  async getTasks(status: string, description: string): Promise<Task[]> {
     try {
       if (description && status) {
         return await this.prisma.task.findMany({
@@ -61,7 +58,7 @@ export class TasksService {
     }
   }
 
-  async getTaskById(id: string): Promise<Prisma.TaskCreateInput> {
+  async getTaskById(id: string): Promise<Task> {
     const taskFoundById = await this.prisma.task.findUnique({
       where: {
         id,
@@ -86,7 +83,13 @@ export class TasksService {
       );
     } else {
       const { id, status, createdAt } = await this.prisma.task.create({
-        data,
+        data: {
+          title: data.title,
+          description: data.description,
+          createdAt: new Date(),
+          project: 0,
+          createdBy: 0,
+        },
       });
       return { id, status, createdAt };
     }
@@ -95,7 +98,7 @@ export class TasksService {
   async updateTaskStatus(
     taskId: string,
     newStatus: TaskStatus,
-    updatedBy: string,
+    updatedBy: number,
     updatedAtParam: Date,
   ): Promise<UpdateTaskStatusResponseDto> {
     if (await this.getTaskById(taskId)) {

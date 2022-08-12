@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger/dist/decorators';
-import { IsEnum, IsNotEmpty } from 'class-validator';
-import { TaskStatus } from '../tasks.model';
+import { IsNotEmpty } from 'class-validator';
 
 export class CreateTaskDto {
   id?: string;
@@ -15,4 +14,8 @@ export class CreateTaskDto {
   @ApiProperty({ type: 'string', format: 'text' })
   @IsNotEmpty()
   createdBy: string;
+
+  @ApiProperty({ type: 'number', format: 'number' })
+  @IsNotEmpty()
+  project: number;
 }

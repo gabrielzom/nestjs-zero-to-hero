@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger/dist/decorators';
 
 export class GetAllTasksDto {
-  @ApiProperty({ type: 'string', format: 'text' })
+  @ApiProperty({ type: 'string', format: 'uuid' })
   id: string;
 
   @ApiProperty({ type: 'string', format: 'text' })
@@ -13,10 +13,10 @@ export class GetAllTasksDto {
   @ApiProperty({ type: 'string', format: 'text' })
   status: string;
 
-  @ApiProperty({ type: 'string | Date', format: 'text' })
+  @ApiProperty({ type: 'string', format: 'date-time' })
   createdAt?: Date | string;
 
-  @ApiProperty({ type: 'string | Date', format: 'text' })
+  @ApiProperty({ type: 'string', format: 'date-time' })
   updatedAt?: Date | string | null;
 
   @ApiProperty({ type: 'string', format: 'text' })

@@ -11,15 +11,43 @@ datasource db {
 }
 
 model Task {
-  id String @db.NVarChar(40) @id @default(uuid())
-  title String @db.NVarChar(60) @unique
-  description String? @db.NVarChar(255)
-  status String @db.NVarChar(11) @default("OPEN")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime? @map("updated_at")
-  createdBy String @db.NVarChar(60) @map("created_by")
-  updatedBy String? @db.NVarChar(60) @map("updated_by")
+  id          String    @db.NVarChar(40) @id @default(uuid())
+  title       String    @db.NVarChar(60) @unique
+  description String?   @db.NVarChar(255)
+  status      String    @db.NVarChar(11) @default("OPEN")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @map("updated_at")
+
+  plan        Project   @relation(fields: [project], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project     Int 
+
+  userCreate  User      @relation(fields: [createdBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy   Int       @map("created_by")
+  
+  updatedBy   Int?      @map("updated_by")
 
   @@map("tab_tasks")
 }
 
+model User {
+  id       Int    @id @default(autoincrement())
+  name     String @db.NVarChar(25)
+  lastName String @db.NVarChar(25) @map("last_name")
+  email    String @db.NVarChar(60) @unique
+  password Bytes  @db.VarBinary(128) 
+  role     String @db.NVarChar(12)
+  tasks    Task[]
+  project  Project[]
+  
+  @@map("tab_users")
+}
+
+model Project {
+  id    Int    @id @default(autoincrement())
+  name  String @db.NVarChar(50)
+  user  User   @relation(fields: [owner], references: [id])
+  owner Int
+  tasks Task[]
+
+  @@map("tab_projects")
+}

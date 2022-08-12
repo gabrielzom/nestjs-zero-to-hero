@@ -12,7 +12,7 @@ import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { CreateTaskResponseDto } from './dto/create-task-response-dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
-import { Prisma } from '@prisma/client';
+import { Task } from '@prisma/client';
 import { ApiBody, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { GetAllTasksDto } from './dto/get-all-tasks.dto';
 import { UpdateTaskStatusResponseDto } from './dto/update-task-status-response.dto';
@@ -48,7 +48,7 @@ export class TasksController {
   getTasks(
     @Query('status') status: string,
     @Query('description') description: string,
-  ): Promise<Prisma.TaskCreateInput[]> {
+  ): Promise<Task[]> {
     return this.tasksService.getTasks(status, description);
   }
 
@@ -60,7 +60,7 @@ export class TasksController {
   })
   @ApiResponse({ status: 404, description: 'Task with informed id not found' })
   @Get('/:id/get')
-  getTaskById(@Param('id') id: string): Promise<Prisma.TaskCreateInput> {
+  getTaskById(@Param('id') id: string): Promise<Task> {
     return this.tasksService.getTaskById(id);
   }
 

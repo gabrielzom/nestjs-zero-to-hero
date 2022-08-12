@@ -7,6 +7,6 @@ export class UpdateTaskStatusDto {
   @IsEnum(TaskStatus)
   newStatus: TaskStatus;
 
-  @ApiProperty({ type: 'string', format: 'text' })
-  updatedBy: string;
+  @ApiProperty({ type: 'number', format: 'number' })
+  updatedBy: number;
 }
