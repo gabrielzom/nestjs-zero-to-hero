@@ -7,7 +7,7 @@ import {
 import { TaskStatus } from './tasks.model';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { Task } from '@prisma/client';
-import { PrismaService } from 'src/database/PrismaService';
+import { PrismaService } from '../database/PrismaService';
 import { CreateTaskResponseDto } from './dto/create-task-response-dto';
 import { UpdateTaskStatusResponseDto } from './dto/update-task-status-response.dto';
 import { DeleteTaskResponseDto } from './dto/delete-task-response.dto';
@@ -86,8 +86,7 @@ export class TasksService {
         data: {
           title: data.title,
           description: data.description,
-          createdAt: new Date(),
-          project: 0,
+          project: data.project,
           createdBy: 0,
         },
       });
@@ -99,7 +98,6 @@ export class TasksService {
     taskId: string,
     newStatus: TaskStatus,
     updatedBy: number,
-    updatedAtParam: Date,
   ): Promise<UpdateTaskStatusResponseDto> {
     if (await this.getTaskById(taskId)) {
       const { id, status, updatedAt }: UpdateTaskStatusResponseDto =
@@ -107,7 +105,7 @@ export class TasksService {
           data: {
             status: newStatus,
             updatedBy,
-            updatedAt: updatedAtParam,
+            updatedAt: new Date(),
           },
           where: {
             id: taskId,

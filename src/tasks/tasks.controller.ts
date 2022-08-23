@@ -97,12 +97,7 @@ export class TasksController {
     @Param('id') id: string,
     @Body() { newStatus, updatedBy }: UpdateTaskStatusDto,
   ): Promise<UpdateTaskStatusResponseDto> {
-    return this.tasksService.updateTaskStatus(
-      id,
-      newStatus,
-      updatedBy,
-      new Date(),
-    );
+    return this.tasksService.updateTaskStatus(id, newStatus, updatedBy);
   }
 
   @ApiOperation({ summary: 'Endpoint for delete task by id' })
