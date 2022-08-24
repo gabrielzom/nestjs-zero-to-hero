@@ -10,14 +10,29 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBody } from '@nestjs/swagger/dist/decorators';
+import { ApiBody, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { LoginUserDto } from './dto/login-user.dto';
+import { CreateUserResponseDto } from './dto/create-user-response.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @ApiBody({ description: 'Data of register user', type: CreateUserDto })
+  @ApiOperation({ summary: 'Endpoint for create user' })
+  @ApiResponse({
+    status: 200,
+    type: CreateUserResponseDto,
+    description: 'Tasks returneds',
+    isArray: true,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'There has been an error. The query was not possible',
+  })
+  @ApiBody({
+    description: 'Data of register user',
+    type: CreateUserDto,
+  })
   @Post()
   createUser(@Body() createUserDto: CreateUserDto): Promise<unknown> {
     return this.usersService.createUser(createUserDto);

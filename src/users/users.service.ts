@@ -3,26 +3,14 @@ import { PrismaService } from 'src/database/PrismaService';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { executeInsertUser } from './utils/users.options';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<unknown> {
-    console.log(createUserDto);
-    const created = await this.prisma
-      .$executeRawUnsafe(`INSERT INTO tab_users (name, last_name, email, password, role) 
-        VALUES (
-          '${createUserDto.name}',
-          '${createUserDto.lastName}',
-          '${createUserDto.email}',
-          PWDENCRYPT('${createUserDto.password}'),
-          '${createUserDto.role}'
-        );`);
-
-    console.log(created);
-
-    return created;
+    return executeInsertUser(this.prisma, createUserDto);
   }
 
   async loginUser(loginUserDto: LoginUserDto): Promise<unknown> {
