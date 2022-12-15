@@ -4,16 +4,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { TaskStatus } from './tasks.model';
+import { TaskStatus } from './task.model';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { Task } from '@prisma/client';
 import { PrismaService } from '../database/PrismaService';
-import { CreateTaskResponseDto } from './dto/create-task-response-dto';
+import { CreateTaskResponseDto } from './dto/create-task-response.dto';
 import { UpdateTaskStatusResponseDto } from './dto/update-task-status-response.dto';
 import { DeleteTaskResponseDto } from './dto/delete-task-response.dto';
 
 @Injectable()
-export class TasksService {
+export class TaskService {
   constructor(private prisma: PrismaService) {}
 
   async getTasks(status: string, description: string): Promise<Task[]> {
@@ -87,7 +87,7 @@ export class TasksService {
           title: data.title,
           description: data.description,
           project: data.project,
-          createdBy: 0,
+          createdBy: data.createdBy,
         },
       });
       return { id, status, createdAt };
@@ -115,7 +115,7 @@ export class TasksService {
     }
   }
 
-  async deleteTaskById(
+  async deleteTask(
     id: string,
     deletedBy: string,
   ): Promise<DeleteTaskResponseDto> {

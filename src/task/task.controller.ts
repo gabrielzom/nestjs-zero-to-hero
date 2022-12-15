@@ -8,9 +8,9 @@ import {
   Patch,
   Query,
 } from '@nestjs/common';
-import { TasksService } from './tasks.service';
+import { TaskService } from './task.service';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { CreateTaskResponseDto } from './dto/create-task-response-dto';
+import { CreateTaskResponseDto } from './dto/create-task-response.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { Task } from '@prisma/client';
 import { ApiBody, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
@@ -19,11 +19,11 @@ import { UpdateTaskStatusResponseDto } from './dto/update-task-status-response.d
 import { DeleteTaskResponseDto } from './dto/delete-task-response.dto';
 import { DeleteTaskDto } from './dto/delete-task.dto';
 
-@Controller('tasks')
-export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+@Controller('task')
+export class TaskController {
+  constructor(private readonly taskService: TaskService) {}
 
-  @ApiOperation({ summary: 'Endpoint for get tasks' })
+  @ApiOperation({ summary: 'Endpoint for get task' })
   @ApiResponse({
     status: 200,
     type: GetAllTasksDto,
@@ -49,7 +49,7 @@ export class TasksController {
     @Query('status') status: string,
     @Query('description') description: string,
   ): Promise<Task[]> {
-    return this.tasksService.getTasks(status, description);
+    return this.taskService.getTasks(status, description);
   }
 
   @ApiOperation({ summary: 'Endpoint for get task by id' })
@@ -59,9 +59,9 @@ export class TasksController {
     description: 'Task returned',
   })
   @ApiResponse({ status: 404, description: 'Task with informed id not found' })
-  @Get('/:id/get')
+  @Get('/:id')
   getTaskById(@Param('id') id: string): Promise<Task> {
-    return this.tasksService.getTaskById(id);
+    return this.taskService.getTaskById(id);
   }
 
   @ApiOperation({ summary: 'Endpoint for create task' })
@@ -73,9 +73,9 @@ export class TasksController {
   @ApiResponse({ status: 409, description: 'Task alredy exists' })
   @ApiResponse({ status: 400, description: 'If the status type is invalid' })
   @ApiBody({ description: 'Data of task', type: CreateTaskDto })
-  @Post('/create')
+  @Post()
   createTask(@Body() data: CreateTaskDto): Promise<CreateTaskResponseDto> {
-    return this.tasksService.createTask(data);
+    return this.taskService.createTask(data);
   }
 
   @ApiOperation({ summary: 'Endpoint for update task status' })
@@ -97,7 +97,7 @@ export class TasksController {
     @Param('id') id: string,
     @Body() { newStatus, updatedBy }: UpdateTaskStatusDto,
   ): Promise<UpdateTaskStatusResponseDto> {
-    return this.tasksService.updateTaskStatus(id, newStatus, updatedBy);
+    return this.taskService.updateTaskStatus(id, newStatus, updatedBy);
   }
 
   @ApiOperation({ summary: 'Endpoint for delete task by id' })
@@ -107,11 +107,11 @@ export class TasksController {
     description: 'Task that was deleted',
   })
   @ApiResponse({ status: 404, description: 'Task with informed id not found' })
-  @Delete('/:id/delete')
-  deleteTaskById(
+  @Delete('/:id')
+  deleteTask(
     @Param('id') id: string,
     @Body() { updatedBy }: DeleteTaskDto,
   ): Promise<DeleteTaskResponseDto> {
-    return this.tasksService.deleteTaskById(id, updatedBy);
+    return this.taskService.deleteTask(id, updatedBy);
   }
 }

@@ -13,7 +13,7 @@ export class CreateTaskDto {
 
   @ApiProperty({ type: 'string', format: 'text' })
   @IsNotEmpty()
-  createdBy: string;
+  createdBy: number;
 
   @ApiProperty({ type: 'number', format: 'number' })
   @IsNotEmpty()
