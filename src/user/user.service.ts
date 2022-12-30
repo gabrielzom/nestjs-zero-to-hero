@@ -1,133 +1,145 @@
 import {
   BadRequestException,
   ConflictException,
-  HttpException,
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from 'src/database/PrismaService';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import * as process from 'process';
 import { CreatedUserDto } from './dto/created-user.dto';
-import { emailIsValid } from '../../helpers/validation';
 import { User } from '@prisma/client';
+import { UserDataManipulate } from './sql/user.data.manipulate';
+import { UserDataQuery } from './sql/user.data.query';
+import { UserExceptionMessage } from '../../utils/exception/user.exception.message';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private exceptionMessage: UserExceptionMessage,
+  ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<CreatedUserDto> {
-    if (!emailIsValid(createUserDto.email)) {
-      throw new HttpException('The informed e-mail is invalid. ', 406);
-    }
     if (await this.getUserByEmail(createUserDto.email)) {
-      throw new ConflictException('User with this e-mail already exists. ');
+      throw new ConflictException(
+        this.exceptionMessage.get('EMAIL_ALREADY_IN_USE'),
+      );
     }
     if (createUserDto.confirmPassword != createUserDto.password) {
-      throw new BadRequestException('The passwords not equals. ');
+      throw new BadRequestException(
+        this.exceptionMessage.get('PASSWORDS_DONT_MATCH'),
+      );
     }
-    const createdUserDto = new CreatedUserDto();
     const created = await this.prisma.$executeRawUnsafe(
-      `INSERT INTO tab_users (
-        name, 
-        last_name, 
-        email, 
-        role,
-        password 
-      ) VALUES (
-        '${createUserDto.name.toUpperCase()}',
-        '${createUserDto.lastName.toUpperCase()}',
-        '${createUserDto.email.toLowerCase()}',
-        '${createUserDto.role}',
-        AES_ENCRYPT(
-          '${createUserDto.password}', 
-          '${process.env.AES_KEY}'
-        )
-      )`,
+      UserDataManipulate.createUser(createUserDto),
     );
-    createdUserDto.creationDatetime = new Date();
-    if (created) {
-      const user = await this.getUserByEmail(createUserDto.email);
-      createdUserDto.role = user.role;
-      createdUserDto.email = user.email;
-      return createdUserDto;
-    } else {
-      throw new Error('An error occurred where try recovery user created. ');
+    try {
+      if (created) {
+        const user = await this.getUserByEmail(createUserDto.email);
+        return {
+          creationDatetime: new Date(),
+          email: user.email,
+          role: user.role,
+        };
+      }
+    } catch (e) {
+      throw new Error(this.exceptionMessage.get('ERROR_TO_CREATE_USER', e));
     }
   }
 
   async loginUser(loginUserDto: LoginUserDto): Promise<unknown> {
-    if (!emailIsValid(loginUserDto.email)) {
-      throw new BadRequestException('The informed e-mail is invalid. ');
+    try {
+      if (!(await this.getUserByEmail(loginUserDto.email))) {
+        throw new BadRequestException(
+          this.exceptionMessage.get('USER_DONT_EXIST'),
+        );
+      }
+      const [result]: unknown[] = await this.prisma.$queryRawUnsafe(
+        UserDataQuery.verifyPassword(loginUserDto),
+      );
+      if (!result) {
+        throw new BadRequestException(
+          this.exceptionMessage.get('INCORRET_PASSWORD'),
+        );
+      }
+      return result;
+    } catch (e) {
+      throw new BadRequestException(
+        this.exceptionMessage.get('ERROR_TO_LOGIN_USER', e),
+      );
     }
-    if (!(await this.getUserByEmail(loginUserDto.email))) {
-      throw new BadRequestException('This user are not exists. ');
-    }
-    const result: unknown[] = await this.prisma.$queryRawUnsafe(
-      `
-      SELECT 
-        name,
-        last_name AS lastName,
-        email, 
-        role,
-        password
-      FROM tab_users 
-      WHERE 
-        CAST(
-          AES_DECRYPT(
-            password, 
-            '${process.env.AES_KEY}'
-          ) AS CHAR
-        ) = '${loginUserDto.password}'
-      AND email = '${loginUserDto.email}'
-    `,
-    );
-    if (!result.length) {
-      throw new BadRequestException('Incorrect password. ');
-    }
-    return result[0];
   }
 
-  async getUsers() {
-    return await this.prisma.user.findMany();
+  async getUsers(): Promise<User[]> {
+    try {
+      return await this.prisma.user.findMany();
+    } catch (e) {
+      throw new BadRequestException(
+        this.exceptionMessage.get('ERROR_TO_GET_USERS', e),
+      );
+    }
   }
 
-  async getUserById(id: number) {
-    return await this.prisma.user.findUnique({
-      where: {
-        id,
-      },
-    });
+  async getUserById(id: number): Promise<User> {
+    try {
+      return await this.prisma.user.findUnique({
+        where: {
+          id,
+        },
+      });
+    } catch (e) {
+      throw new BadRequestException(
+        this.exceptionMessage.get('ERROR_TO_GET_USER', e),
+      );
+    }
   }
 
   async getUserByEmail(email: string): Promise<User> {
-    return await this.prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
+    try {
+      return await this.prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+    } catch (e) {
+      throw new BadRequestException(
+        this.exceptionMessage.get('ERROR_TO_GET_USER', e),
+      );
+    }
   }
 
-  updateUser(id: number, updateUserDto: UpdateUserDto) {
-    return this.prisma.user.update({
-      where: {
-        id,
-      },
-      data: {
-        name: updateUserDto.name,
-        lastName: updateUserDto.lastName,
-        email: updateUserDto.email,
-        role: updateUserDto.role,
-      },
-    });
+  updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+    try {
+      return this.prisma.user.update({
+        where: {
+          id,
+        },
+        data: {
+          name: updateUserDto.name,
+          lastName: updateUserDto.lastName,
+          email: updateUserDto.email,
+          role: updateUserDto.role,
+        },
+      });
+    } catch (e) {
+      throw new BadRequestException(
+        this.exceptionMessage.get('ERROR_TO_UPDATE_USER_INFO', e),
+      );
+    }
   }
 
-  async deleteUser(id: number) {
-    return this.prisma.user.delete({
-      where: {
-        id,
-      },
-    });
+  async deleteUser(id: number): Promise<User> {
+    try {
+      return this.prisma.user.delete({
+        where: {
+          id,
+        },
+      });
+    } catch (e) {
+      throw new BadRequestException(
+        this.exceptionMessage.get('ERROR_TO_DELETE_USER', e),
+      );
+    }
   }
 }
