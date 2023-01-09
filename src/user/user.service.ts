@@ -60,10 +60,7 @@ export class UserService {
         new UserExceptionMessage().get('USER_DONT_EXIST'),
       );
     }
-    if (
-      aesDecrypt(user.password.toString('hex'), user.iv.toString('hex')) !==
-      loginUserDto.password
-    ) {
+    if (aesDecrypt(user.password, user.iv) !== loginUserDto.password) {
       throw new BadRequestException(
         new UserExceptionMessage().get('INCORRET_PASS'),
       );
