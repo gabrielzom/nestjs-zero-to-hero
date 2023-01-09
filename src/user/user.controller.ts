@@ -6,11 +6,12 @@ import {
   Param,
   Delete,
   Put,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBody } from '@nestjs/swagger/dist/decorators';
+import { ApiBody, ApiQuery } from '@nestjs/swagger/dist/decorators';
 import { LoginUserDto } from './dto/login-user.dto';
 import { CreatedUserDto } from './dto/created-user.dto';
 import { User } from '@prisma/client';
@@ -31,13 +32,32 @@ export class UserController {
     return this.userService.loginUser(loginUserDto);
   }
 
+  @ApiQuery({
+    name: 'email',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'lastName',
+    required: false,
+    type: String,
+  })
   @Get()
-  getUsers() {
-    return this.userService.getUsers();
+  getUsers(
+    @Query('email') email: string,
+    @Query('name') name: string,
+    @Query('lastName') lastName: string,
+  ): Promise<User[]> {
+    return this.userService.getUsers(email, name, lastName);
   }
 
   @Get(':id')
-  getUserById(@Param('id') id: number) {
+  getUserById(@Param('id') id: number): Promise<User> {
     return this.userService.getUserById(id);
   }
   @Get(':email/get-by-email')
@@ -46,12 +66,15 @@ export class UserController {
   }
 
   @Put(':id')
-  updateUser(@Param('id') id: number, @Body() updateUserDto: UpdateUserDto) {
+  updateUser(
+    @Param('id') id: number,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
     return this.userService.updateUser(id, updateUserDto);
   }
 
   @Delete(':id')
-  deleteUser(@Param('id') id: number) {
+  deleteUser(@Param('id') id: number): Promise<User> {
     return this.userService.deleteUser(id);
   }
 }

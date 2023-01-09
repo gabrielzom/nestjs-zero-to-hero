@@ -33,7 +33,8 @@ model User {
   name     String @db.VarChar(25)
   lastName String @db.VarChar(25) @map("last_name")
   email    String @db.VarChar(60) @unique
-  password Bytes  @db.VarBinary(128) 
+  password Bytes  @db.VarBinary(128)
+  iv       Bytes  @db.VarBinary(16)
   role     String @db.VarChar(12)
   tasks    Task[]
   project  Project[]

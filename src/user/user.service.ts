@@ -1,3 +1,4 @@
+import { aesEncrypt, aesDecrypt } from '../../helpers';
 import {
   BadRequestException,
   ConflictException,
@@ -9,74 +10,85 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreatedUserDto } from './dto/created-user.dto';
 import { User } from '@prisma/client';
-import { UserDataManipulate } from './sql/user.data.manipulate';
 import { UserDataQuery } from './sql/user.data.query';
 import { UserExceptionMessage } from '../../utils/exception/user.exception.message';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UserService {
-  constructor(
-    private prisma: PrismaService,
-    private exceptionMessage: UserExceptionMessage,
-  ) {}
-
+  constructor(private prisma: PrismaService) {}
   async createUser(createUserDto: CreateUserDto): Promise<CreatedUserDto> {
     if (await this.getUserByEmail(createUserDto.email)) {
-      throw new ConflictException(
-        this.exceptionMessage.get('EMAIL_ALREADY_IN_USE'),
-      );
+      throw new ConflictException(new UserExceptionMessage().get('USER_EXIST'));
     }
     if (createUserDto.confirmPassword != createUserDto.password) {
       throw new BadRequestException(
-        this.exceptionMessage.get('PASSWORDS_DONT_MATCH'),
+        new UserExceptionMessage().get('PASS_DONT_MATCH'),
       );
     }
-    const created = await this.prisma.$executeRawUnsafe(
-      UserDataManipulate.createUser(createUserDto),
-    );
+    const iv: Buffer = crypto.randomBytes(16);
+    const password: Buffer = aesEncrypt(createUserDto.password, iv);
+    const createdUser = await this.prisma.user.create({
+      data: {
+        name: createUserDto.name,
+        lastName: createUserDto.lastName,
+        email: createUserDto.email,
+        password,
+        iv,
+        role: createUserDto.role,
+      },
+    });
     try {
-      if (created) {
-        const user = await this.getUserByEmail(createUserDto.email);
+      if (createdUser) {
         return {
           creationDatetime: new Date(),
-          email: user.email,
-          role: user.role,
+          email: createdUser.email,
+          role: createdUser.role,
         };
       }
     } catch (e) {
-      throw new Error(this.exceptionMessage.get('ERROR_TO_CREATE_USER', e));
-    }
-  }
-
-  async loginUser(loginUserDto: LoginUserDto): Promise<unknown> {
-    try {
-      if (!(await this.getUserByEmail(loginUserDto.email))) {
-        throw new BadRequestException(
-          this.exceptionMessage.get('USER_DONT_EXIST'),
-        );
-      }
-      const [result]: unknown[] = await this.prisma.$queryRawUnsafe(
-        UserDataQuery.verifyPassword(loginUserDto),
-      );
-      if (!result) {
-        throw new BadRequestException(
-          this.exceptionMessage.get('INCORRET_PASSWORD'),
-        );
-      }
-      return result;
-    } catch (e) {
       throw new BadRequestException(
-        this.exceptionMessage.get('ERROR_TO_LOGIN_USER', e),
+        new UserExceptionMessage().get('ERROR_CREATE_USER', e),
       );
     }
   }
 
-  async getUsers(): Promise<User[]> {
+  async loginUser(loginUserDto: LoginUserDto): Promise<User> {
+    const user: User = await this.getUserByEmail(loginUserDto.email);
+    if (!user) {
+      throw new BadRequestException(
+        new UserExceptionMessage().get('USER_DONT_EXIST'),
+      );
+    }
+    if (
+      aesDecrypt(user.password.toString('hex'), user.iv.toString('hex')) !==
+      loginUserDto.password
+    ) {
+      throw new BadRequestException(
+        new UserExceptionMessage().get('INCORRET_PASS'),
+      );
+    }
     try {
-      return await this.prisma.user.findMany();
+      return user;
     } catch (e) {
       throw new BadRequestException(
-        this.exceptionMessage.get('ERROR_TO_GET_USERS', e),
+        new UserExceptionMessage().get('ERROR_LOGIN_USER', e),
+      );
+    }
+  }
+
+  async getUsers(
+    email: string,
+    name: string,
+    lastName: string,
+  ): Promise<User[]> {
+    try {
+      return await this.prisma.user.findMany(
+        UserDataQuery.getUsersORM(email, name, lastName),
+      );
+    } catch (e) {
+      throw new BadRequestException(
+        new UserExceptionMessage().get('ERROR_GET_USERS', e),
       );
     }
   }
@@ -90,7 +102,7 @@ export class UserService {
       });
     } catch (e) {
       throw new BadRequestException(
-        this.exceptionMessage.get('ERROR_TO_GET_USER', e),
+        new UserExceptionMessage().get('ERROR_GET_USER', e),
       );
     }
   }
@@ -104,7 +116,7 @@ export class UserService {
       });
     } catch (e) {
       throw new BadRequestException(
-        this.exceptionMessage.get('ERROR_TO_GET_USER', e),
+        new UserExceptionMessage().get('ERROR_GET_USER', e),
       );
     }
   }
@@ -124,7 +136,7 @@ export class UserService {
       });
     } catch (e) {
       throw new BadRequestException(
-        this.exceptionMessage.get('ERROR_TO_UPDATE_USER_INFO', e),
+        new UserExceptionMessage().get('ERROR_UPDATE_USER', e),
       );
     }
   }
@@ -138,7 +150,7 @@ export class UserService {
       });
     } catch (e) {
       throw new BadRequestException(
-        this.exceptionMessage.get('ERROR_TO_DELETE_USER', e),
+        new UserExceptionMessage().get('ERROR_DELETE_USER', e),
       );
     }
   }
