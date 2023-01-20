@@ -10,6 +10,7 @@ async function bootstrap() {
     .setDescription('My first Api using nest.js with swagger open api')
     .setVersion('1.0.0')
     .addTag('zero-to-hero')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

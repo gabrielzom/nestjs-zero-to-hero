@@ -1,3 +1,4 @@
+import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { aesEncrypt, aesDecrypt } from '../../helpers';
 import {
   BadRequestException,
@@ -5,46 +6,43 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from 'src/database/PrismaService';
-import { CreateUserDto } from './dto/create-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { CreatedUserDto } from './dto/created-user.dto';
+import { UserCreateDto } from './dto/user-create.dto';
+import { UserLoginDto } from './dto/user-login.dto';
+import { UserUpdateDto } from './dto/user-update.dto';
+import { UserRetrieveDto } from './dto/user-retrieve.dto';
 import { User } from '@prisma/client';
 import { UserDataQuery } from './sql/user.data.query';
 import { UserExceptionMessage } from '../../utils/exception/user.exception.message';
 import * as crypto from 'crypto';
+import { UserDeletedDto } from './dto/user-deleted.dto';
 
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
-  async createUser(createUserDto: CreateUserDto): Promise<CreatedUserDto> {
-    if (await this.getUserByEmail(createUserDto.email)) {
+  async createUser(userCreate: UserCreateDto): Promise<UserRetrieveDto> {
+    if (await this.getUserByEmail(userCreate.email)) {
       throw new ConflictException(new UserExceptionMessage().get('USER_EXIST'));
     }
-    if (createUserDto.confirmPassword != createUserDto.password) {
+    if (userCreate.confirmPassword != userCreate.password) {
       throw new BadRequestException(
         new UserExceptionMessage().get('PASS_DONT_MATCH'),
       );
     }
     const iv: Buffer = crypto.randomBytes(16);
-    const password: Buffer = aesEncrypt(createUserDto.password, iv);
-    const createdUser = await this.prisma.user.create({
+    const password: Buffer = aesEncrypt(userCreate.password, iv);
+    const user = await this.prisma.user.create({
       data: {
-        name: createUserDto.name,
-        lastName: createUserDto.lastName,
-        email: createUserDto.email,
+        name: userCreate.name,
+        lastName: userCreate.lastName,
+        email: userCreate.email,
         password,
         iv,
-        role: createUserDto.role,
+        role: userCreate.role,
       },
     });
     try {
-      if (createdUser) {
-        return {
-          creationDatetime: new Date(),
-          email: createdUser.email,
-          role: createdUser.role,
-        };
+      if (user) {
+        return user;
       }
     } catch (e) {
       throw new BadRequestException(
@@ -53,15 +51,15 @@ export class UserService {
     }
   }
 
-  async loginUser(loginUserDto: LoginUserDto): Promise<User> {
-    const user: User = await this.getUserByEmail(loginUserDto.email);
+  async loginUser(userLogin: UserLoginDto): Promise<User> {
+    const user: User = await this.getUserByEmail(userLogin.email);
     if (!user) {
       throw new BadRequestException(
         new UserExceptionMessage().get('USER_DONT_EXIST'),
       );
     }
-    if (aesDecrypt(user.password, user.iv) !== loginUserDto.password) {
-      throw new BadRequestException(
+    if (aesDecrypt(user.password, user.iv) !== userLogin.password) {
+      throw new UnauthorizedException(
         new UserExceptionMessage().get('INCORRET_PASS'),
       );
     }
@@ -78,11 +76,21 @@ export class UserService {
     email: string,
     name: string,
     lastName: string,
-  ): Promise<User[]> {
+  ): Promise<UserRetrieveDto[]> {
     try {
-      return await this.prisma.user.findMany(
+      const users = await this.prisma.user.findMany(
         UserDataQuery.getUsersORM(email, name, lastName),
       );
+      const usersRetrieve: UserRetrieveDto[] = new Array<UserRetrieveDto>();
+      for (const user of users) {
+        usersRetrieve.push({
+          name: user.name,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+        });
+      }
+      return usersRetrieve;
     } catch (e) {
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_GET_USERS', e),
@@ -90,13 +98,20 @@ export class UserService {
     }
   }
 
-  async getUserById(id: number): Promise<User> {
+  async getUserById(id: number): Promise<UserRetrieveDto> {
     try {
-      return await this.prisma.user.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: {
-          id,
+          id: id,
         },
       });
+      const userRetrieve: UserRetrieveDto = {
+        name: user.name,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+      };
+      return userRetrieve;
     } catch (e) {
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_GET_USER', e),
@@ -118,19 +133,29 @@ export class UserService {
     }
   }
 
-  updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  async updateUser(
+    id: number,
+    userUpdate: UserUpdateDto,
+  ): Promise<UserRetrieveDto> {
     try {
-      return this.prisma.user.update({
+      const user = await this.prisma.user.update({
         where: {
           id,
         },
         data: {
-          name: updateUserDto.name,
-          lastName: updateUserDto.lastName,
-          email: updateUserDto.email,
-          role: updateUserDto.role,
+          name: userUpdate.name,
+          lastName: userUpdate.lastName,
+          email: userUpdate.email,
+          role: userUpdate.role,
         },
       });
+      const userRetrieve: UserRetrieveDto = {
+        name: user.name,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+      };
+      return userRetrieve;
     } catch (e) {
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_UPDATE_USER', e),
@@ -138,13 +163,18 @@ export class UserService {
     }
   }
 
-  async deleteUser(id: number): Promise<User> {
+  async deleteUser(id: number): Promise<UserDeletedDto> {
     try {
-      return this.prisma.user.delete({
+      const user: User = await this.prisma.user.delete({
         where: {
           id,
         },
       });
+      const userDeleted: UserDeletedDto = {
+        deleted: true,
+        ...user,
+      };
+      return userDeleted;
     } catch (e) {
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_DELETE_USER', e),

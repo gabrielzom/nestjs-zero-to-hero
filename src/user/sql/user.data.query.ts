@@ -1,4 +1,4 @@
-import { LoginUserDto } from '../dto/login-user.dto';
+import { UserLoginDto } from '../dto/user-login.dto';
 import * as process from 'process';
 
 export class UserDataQuery {
@@ -45,7 +45,7 @@ export class UserDataQuery {
     }
     return query;
   }
-  static verifyPasswordSQL(loginUserDto: LoginUserDto): string {
+  static verifyPasswordSQL(userLogin: UserLoginDto): string {
     return `
     SELECT 
       name,
@@ -60,8 +60,8 @@ export class UserDataQuery {
           password, 
           '${process.env.AES_KEY}'
         ) AS CHAR
-      ) = '${loginUserDto.password}'
-    AND email = '${loginUserDto.email}'
+      ) = '${userLogin.password}'
+    AND email = '${userLogin.email}'
   `;
   }
 }

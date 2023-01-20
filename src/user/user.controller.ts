@@ -1,3 +1,4 @@
+import { UserRetrieveDto } from './dto/user-retrieve.dto';
 import {
   Controller,
   Get,
@@ -7,29 +8,32 @@ import {
   Delete,
   Put,
   Query,
+  UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBody, ApiQuery } from '@nestjs/swagger/dist/decorators';
-import { LoginUserDto } from './dto/login-user.dto';
-import { CreatedUserDto } from './dto/created-user.dto';
-import { User } from '@prisma/client';
+import { UserCreateDto } from './dto/user-create.dto';
+import { UserUpdateDto } from './dto/user-update.dto';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiQuery,
+} from '@nestjs/swagger/dist/decorators';
+import { AuthGuard } from '@nestjs/passport';
+import { UserDeletedDto } from './dto/user-deleted.dto';
 
+@ApiBearerAuth()
 @Controller('user')
+@UseGuards(AuthGuard('jwt'))
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @ApiBody({ description: 'Data of register user', type: CreateUserDto })
+  @ApiBody({ description: 'Data of register user', type: UserCreateDto })
   @Post()
-  createUser(@Body() createUserDto: CreateUserDto): Promise<CreatedUserDto> {
-    return this.userService.createUser(createUserDto);
-  }
-
-  @ApiBody({ description: 'Login user', type: LoginUserDto })
-  @Post('/login')
-  loginUser(@Body() loginUserDto: LoginUserDto): Promise<unknown> {
-    return this.userService.loginUser(loginUserDto);
+  async createUser(
+    @Body() userCreate: UserCreateDto,
+  ): Promise<UserRetrieveDto> {
+    return this.userService.createUser(userCreate);
   }
 
   @ApiQuery({
@@ -48,33 +52,33 @@ export class UserController {
     type: String,
   })
   @Get()
-  getUsers(
+  async getUsers(
     @Query('email') email: string,
     @Query('name') name: string,
     @Query('lastName') lastName: string,
-  ): Promise<User[]> {
+  ): Promise<UserRetrieveDto[]> {
     return this.userService.getUsers(email, name, lastName);
   }
 
   @Get(':id')
-  getUserById(@Param('id') id: number): Promise<User> {
+  async getUserById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<UserRetrieveDto> {
     return this.userService.getUserById(id);
-  }
-  @Get(':email/get-by-email')
-  getUserByEmail(@Param('email') email: string): Promise<User> {
-    return this.userService.getUserByEmail(email);
   }
 
   @Put(':id')
-  updateUser(
-    @Param('id') id: number,
-    @Body() updateUserDto: UpdateUserDto,
-  ): Promise<User> {
-    return this.userService.updateUser(id, updateUserDto);
+  async updateUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() userUpdate: UserUpdateDto,
+  ): Promise<UserRetrieveDto> {
+    return this.userService.updateUser(id, userUpdate);
   }
 
   @Delete(':id')
-  deleteUser(@Param('id') id: number): Promise<User> {
+  async deleteUser(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<UserDeletedDto> {
     return this.userService.deleteUser(id);
   }
 }
