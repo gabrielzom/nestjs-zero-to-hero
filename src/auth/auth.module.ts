@@ -1,3 +1,4 @@
+import { AppConstants } from './../../constants/app.constans';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './../user/user.module';
@@ -7,7 +8,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { LocalStrategy } from './strategy/local.strategy';
 import { JwtStrategy } from './strategy/jwt.strategy';
-import { JwtConstants } from './constants/jwt.constants';
 
 @Module({
   imports: [
@@ -15,8 +15,8 @@ import { JwtConstants } from './constants/jwt.constants';
     UserModule,
     PassportModule,
     JwtModule.register({
-      privateKey: JwtConstants.JWT_SECRET,
-      signOptions: { expiresIn: '600s' },
+      privateKey: AppConstants.JWT_SECRET,
+      signOptions: { expiresIn: '60s' },
     }),
   ],
   controllers: [AuthController],

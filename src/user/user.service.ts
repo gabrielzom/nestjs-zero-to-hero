@@ -42,7 +42,7 @@ export class UserService {
     });
     try {
       if (user) {
-        return user;
+        return UserRetrieveDto.parse(user);
       }
     } catch (e) {
       throw new BadRequestException(
@@ -81,16 +81,7 @@ export class UserService {
       const users = await this.prisma.user.findMany(
         UserDataQuery.getUsersORM(email, name, lastName),
       );
-      const usersRetrieve: UserRetrieveDto[] = new Array<UserRetrieveDto>();
-      for (const user of users) {
-        usersRetrieve.push({
-          name: user.name,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-        });
-      }
-      return usersRetrieve;
+      return UserRetrieveDto.parseList(users);
     } catch (e) {
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_GET_USERS', e),
@@ -105,13 +96,7 @@ export class UserService {
           id: id,
         },
       });
-      const userRetrieve: UserRetrieveDto = {
-        name: user.name,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-      };
-      return userRetrieve;
+      return UserRetrieveDto.parse(user);
     } catch (e) {
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_GET_USER', e),
@@ -149,13 +134,7 @@ export class UserService {
           role: userUpdate.role,
         },
       });
-      const userRetrieve: UserRetrieveDto = {
-        name: user.name,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-      };
-      return userRetrieve;
+      return UserRetrieveDto.parse(user);
     } catch (e) {
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_UPDATE_USER', e),
@@ -170,11 +149,7 @@ export class UserService {
           id,
         },
       });
-      const userDeleted: UserDeletedDto = {
-        deleted: true,
-        ...user,
-      };
-      return userDeleted;
+      return UserDeletedDto.parse(user);
     } catch (e) {
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_DELETE_USER', e),

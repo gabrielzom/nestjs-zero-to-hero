@@ -24,7 +24,6 @@ import { UserDeletedDto } from './dto/user-deleted.dto';
 
 @ApiBearerAuth()
 @Controller('user')
-@UseGuards(AuthGuard('jwt'))
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -36,6 +35,7 @@ export class UserController {
     return this.userService.createUser(userCreate);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @ApiQuery({
     name: 'email',
     required: false,
@@ -60,6 +60,7 @@ export class UserController {
     return this.userService.getUsers(email, name, lastName);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   async getUserById(
     @Param('id', ParseIntPipe) id: number,
@@ -67,6 +68,7 @@ export class UserController {
     return this.userService.getUserById(id);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Put(':id')
   async updateUser(
     @Param('id', ParseIntPipe) id: number,
@@ -75,6 +77,7 @@ export class UserController {
     return this.userService.updateUser(id, userUpdate);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
   async deleteUser(
     @Param('id', ParseIntPipe) id: number,
