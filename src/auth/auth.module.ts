@@ -1,4 +1,4 @@
-import { AppConstants } from './../../constants/app.constans';
+import { AppConstants } from './../../constants/app.constants';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './../user/user.module';
