@@ -1,3 +1,4 @@
+import { HistoryService } from './../history/history.service';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { aesEncrypt, aesDecrypt } from '../../helpers';
 import {
@@ -15,12 +16,20 @@ import { UserDataQuery } from './sql/user.data.query';
 import { UserExceptionMessage } from '../../utils/exception/user.exception.message';
 import * as crypto from 'crypto';
 import { UserDeletedDto } from './dto/user-deleted.dto';
+import { HistoryTypeEnum } from 'utils/enums';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
-  async createUser(userCreate: UserCreateDto): Promise<UserRetrieveDto> {
-    if (await this.getUserByEmail(userCreate.email)) {
+  className = 'user';
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly history: HistoryService,
+  ) {}
+  async createUser(
+    userCreate: UserCreateDto,
+    bearerToken: string,
+  ): Promise<UserRetrieveDto> {
+    if (await this.getUserByEmail(userCreate.email, bearerToken)) {
       throw new ConflictException(new UserExceptionMessage().get('USER_EXIST'));
     }
     if (userCreate.confirmPassword != userCreate.password) {
@@ -42,9 +51,22 @@ export class UserService {
     });
     try {
       if (user) {
-        return UserRetrieveDto.parse(user);
+        const userRetrieve = UserRetrieveDto.parse(user);
+        this.history.addHistory(
+          HistoryTypeEnum.CREATE,
+          this.className,
+          userRetrieve,
+          bearerToken,
+        );
+        return userRetrieve;
       }
     } catch (e) {
+      this.history.addHistory(
+        HistoryTypeEnum.CREATE,
+        this.className,
+        e,
+        bearerToken,
+      );
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_CREATE_USER', e),
       );
@@ -52,7 +74,7 @@ export class UserService {
   }
 
   async loginUser(userLogin: UserLoginDto): Promise<User> {
-    const user: User = await this.getUserByEmail(userLogin.email);
+    const user = await this.getUserByEmail(userLogin.email, null);
     if (!user) {
       throw new BadRequestException(
         new UserExceptionMessage().get('USER_DONT_EXIST'),
@@ -64,8 +86,20 @@ export class UserService {
       );
     }
     try {
+      this.history.addHistory(
+        HistoryTypeEnum.SIGNIN,
+        this.className,
+        UserRetrieveDto.parse(user),
+        'system',
+      );
       return user;
     } catch (e) {
+      this.history.addHistory(
+        HistoryTypeEnum.SIGNIN,
+        this.className,
+        e,
+        'system',
+      );
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_LOGIN_USER', e),
       );
@@ -76,42 +110,85 @@ export class UserService {
     email: string,
     name: string,
     lastName: string,
+    bearerToken: string,
   ): Promise<UserRetrieveDto[]> {
     try {
-      const users = await this.prisma.user.findMany(
-        UserDataQuery.getUsersORM(email, name, lastName),
+      const users = UserRetrieveDto.parseList(
+        await this.prisma.user.findMany(
+          UserDataQuery.getUsersORM(email, name, lastName),
+        ),
       );
-      return UserRetrieveDto.parseList(users);
+      this.history.addHistory(
+        HistoryTypeEnum.SIGNIN,
+        this.className,
+        users,
+        bearerToken,
+        [email, name, lastName],
+      );
+      return users;
     } catch (e) {
+      this.history.addHistory(
+        HistoryTypeEnum.SIGNIN,
+        this.className,
+        e,
+        bearerToken,
+      );
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_GET_USERS', e),
       );
     }
   }
 
-  async getUserById(id: number): Promise<UserRetrieveDto> {
+  async getUserById(id: number, bearerToken: string): Promise<UserRetrieveDto> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: {
-          id: id,
-        },
-      });
-      return UserRetrieveDto.parse(user);
+      const user = UserRetrieveDto.parse(
+        await this.prisma.user.findUnique({
+          where: {
+            id: id,
+          },
+        }),
+      );
+      this.history.addHistory(
+        HistoryTypeEnum.SIGNIN,
+        this.className,
+        user,
+        bearerToken,
+      );
+      return user;
     } catch (e) {
+      this.history.addHistory(
+        HistoryTypeEnum.SIGNIN,
+        this.className,
+        e,
+        bearerToken,
+      );
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_GET_USER', e),
       );
     }
   }
 
-  async getUserByEmail(email: string): Promise<User> {
+  async getUserByEmail(email: string, bearerToken: string): Promise<User> {
     try {
-      return await this.prisma.user.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: {
           email,
         },
       });
+      this.history.addHistory(
+        HistoryTypeEnum.SIGNIN,
+        this.className,
+        UserRetrieveDto.parse(user),
+        bearerToken,
+      );
+      return user;
     } catch (e) {
+      this.history.addHistory(
+        HistoryTypeEnum.SIGNIN,
+        this.className,
+        e,
+        bearerToken,
+      );
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_GET_USER', e),
       );
@@ -121,36 +198,65 @@ export class UserService {
   async updateUser(
     id: number,
     userUpdate: UserUpdateDto,
+    bearerToken: string,
   ): Promise<UserRetrieveDto> {
     try {
-      const user = await this.prisma.user.update({
-        where: {
-          id,
-        },
-        data: {
-          name: userUpdate.name,
-          lastName: userUpdate.lastName,
-          email: userUpdate.email,
-          role: userUpdate.role,
-        },
-      });
-      return UserRetrieveDto.parse(user);
+      const user = UserRetrieveDto.parse(
+        await this.prisma.user.update({
+          where: {
+            id,
+          },
+          data: {
+            name: userUpdate.name,
+            lastName: userUpdate.lastName,
+            email: userUpdate.email,
+            role: userUpdate.role,
+          },
+        }),
+      );
+      this.history.addHistory(
+        HistoryTypeEnum.UPDATE,
+        this.className,
+        user,
+        bearerToken,
+      );
+      return user;
     } catch (e) {
+      this.history.addHistory(
+        HistoryTypeEnum.UPDATE,
+        this.className,
+        e,
+        bearerToken,
+      );
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_UPDATE_USER', e),
       );
     }
   }
 
-  async deleteUser(id: number): Promise<UserDeletedDto> {
+  async deleteUser(id: number, bearerToken: string): Promise<UserDeletedDto> {
     try {
-      const user: User = await this.prisma.user.delete({
-        where: {
-          id,
-        },
-      });
-      return UserDeletedDto.parse(user);
+      const user = UserDeletedDto.parse(
+        await this.prisma.user.delete({
+          where: {
+            id,
+          },
+        }),
+      );
+      this.history.addHistory(
+        HistoryTypeEnum.DELETE,
+        this.className,
+        user,
+        bearerToken,
+      );
+      return user;
     } catch (e) {
+      this.history.addHistory(
+        HistoryTypeEnum.DELETE,
+        this.className,
+        e,
+        bearerToken,
+      );
       throw new BadRequestException(
         new UserExceptionMessage().get('ERROR_DELETE_USER', e),
       );

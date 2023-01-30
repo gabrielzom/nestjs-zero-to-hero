@@ -38,6 +38,7 @@ model User {
   role     String @db.VarChar(12)
   tasks    Task[]
   project  Project[]
+  historys History[]
   
   @@map("tab_users")
 }
@@ -50,4 +51,16 @@ model Project {
   tasks Task[]
 
   @@map("tab_projects")
+}
+
+model History {
+  id          Int      @id @default(autoincrement())
+  description String   @db.LongText()
+  object      String?  @db.LongText()
+  type        String   @db.VarChar(20) @default("LOG")
+  user        User     @relation(fields: [createdBy], references: [id])
+  createdBy   Int                       @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("tab_historys")
 }
