@@ -64,7 +64,7 @@ export class HistoryService {
         description,
         type,
         object: JSON.stringify(object),
-        createdBy,
+        createdBy: createdBy || 1,
       },
     });
   }
