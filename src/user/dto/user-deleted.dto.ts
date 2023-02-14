@@ -14,6 +14,9 @@ export class UserDeletedDto {
   deleted: boolean;
 
   static parse(user: User): UserDeletedDto {
+    if (!user) {
+      return null;
+    }
     return {
       id: user.id,
       email: user.email,

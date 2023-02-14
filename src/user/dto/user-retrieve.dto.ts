@@ -17,14 +17,17 @@ export class UserRetrieveDto {
   role: string;
 
   static parse(user: User): UserRetrieveDto {
+    if (!user) {
+      return null;
+    }
     const { password, iv, ...userRetrieve } = user;
     return userRetrieve;
   }
 
   static parseList(users: User[]): UserRetrieveDto[] {
-    return users.map((user) => {
-      const { iv, password, ...userRetrieve } = user;
-      return userRetrieve;
-    });
+    if (!users.length) {
+      return null;
+    }
+    return users.map((user) => this.parse(user));
   }
 }

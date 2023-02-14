@@ -2,7 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/database/PrismaService';
 import { Injectable } from '@nestjs/common';
 import { History } from '@prisma/client';
-import { HistoryOrderEnum, HistoryTypeEnum } from 'utils/enums';
+import { HistoryTypeEnum } from 'utils/enums';
 @Injectable()
 export class HistoryService {
   constructor(
@@ -63,8 +63,8 @@ export class HistoryService {
       data: {
         description,
         type,
-        object: JSON.stringify(object),
-        createdBy: createdBy || 1,
+        object: object ? JSON.stringify(object) : 'NULL',
+        createdBy,
       },
     });
   }
