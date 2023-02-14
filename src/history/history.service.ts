@@ -51,7 +51,7 @@ export class HistoryService {
     if (bearerToken !== 'system' && bearerToken) {
       createdBy = this.jwtService.decode(
         bearerToken.replace('Bearer ', '').trim(),
-      )['sub'];
+      )['id'];
     }
     if (args) {
       description += ' : ';
