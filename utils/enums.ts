@@ -15,6 +15,18 @@ export enum HistoryTypeEnum {
 
 export enum HistoryOrderEnum {
   ID = 'id',
-  CREATED_AT = 'createdAt',
-  CREATED_BY = 'createdBy',
+  CREATED_AT = 'created_at',
+  CREATED_BY = 'created_by',
+}
+
+export enum OrderTypeEnum {
+  ASC = 'ASC',
+  DESC = 'DESC',
+}
+
+export enum EntityEnum {
+  USER = 'user',
+  TASK = 'task',
+  PROJECT = 'project',
+  HISTORY = 'history',
 }

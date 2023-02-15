@@ -12,26 +12,36 @@ export class HistoryService {
 
   async getHistory(
     type: string,
-    className: string,
-    createdBy: number,
-    orderBy: string,
+    contains: string,
+    user: number,
+    field: string,
+    orderType: string,
   ): Promise<History[]> {
-    return await this.prisma.history.findMany({
-      where: {
-        type,
-        OR: {
-          createdBy,
-          OR: {
-            description: {
-              contains: className,
-            },
-          },
-        },
-      },
-      orderBy: {
-        [orderBy]: 'asc',
-      },
-    });
+    let query = 'SELECT * FROM `tab_historys`\n';
+    let clause = 'WHERE';
+    if (user) {
+      query += `${clause} created_by = ${user}\n`;
+    } else {
+      if (type) {
+        query += `${clause} type = '${type}'\n`;
+        clause = 'AND';
+      }
+      if (contains) {
+        query += `${clause} description LIKE '%${contains}%'\n`;
+        clause = 'AND';
+      }
+    }
+    if (field) {
+      query += `ORDER BY ${field.toString()} `;
+      if (orderType) {
+        query += orderType;
+      } else {
+        query += 'ASC';
+      }
+    } else {
+      query += `ORDER BY id ASC`;
+    }
+    return await this.prisma.$queryRawUnsafe(query);
   }
 
   async getHistoryById(id: number): Promise<History> {
